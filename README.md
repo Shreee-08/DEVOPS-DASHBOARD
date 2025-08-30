@@ -1,5 +1,5 @@
 <<<<<<< HEAD
-# DevOps Dashboard: CI/CD Pipeline with Linting, Testing & Notifications
+# DevOps Dashboard: CI/CD Pipeline with Linting,   Testing & Notifications
 
 This starter repo sets up:
 - Python sample app
