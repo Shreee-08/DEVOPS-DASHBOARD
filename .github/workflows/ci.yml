@@ -36,7 +36,7 @@ jobs:
         if: always()
         uses: rtCamp/action-slack-notify@v2
         env:
-          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
           SLACK_MESSAGE: "CI ${{ job.status }} for ${{ github.repository }} on ${{ github.ref_name }} @ ${{ github.sha }}"
           SLACK_COLOR: ${{ job.status }}
 
