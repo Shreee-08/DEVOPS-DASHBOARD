@@ -1,0 +1,48 @@
+name: CI - Lint & Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Lint
+        run: |
+          pylint main.py
+
+      - name: Run tests
+        run: |
+          pytest -q
+
+      - name: Notify Slack (CI Result)
+        if: always()
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_MESSAGE: "CI ${{ job.status }} for ${{ github.repository }} on ${{ github.ref_name }} @ ${{ github.sha }}"
+          SLACK_COLOR: ${{ job.status }}
+
+      - name: Slack Notification Test
+        uses: rtCamp/action-slack-notify@v2.3.3
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_MESSAGE: "🚀 Test message: GitHub Actions → Slack is working!"
+          SLACK_COLOR: good
