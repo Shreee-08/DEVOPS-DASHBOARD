@@ -1,4 +1,4 @@
-name: CI - Lint & Test
+name: CI - Lint, Test & Log Analysis
 
 on:
   push:
@@ -31,6 +31,12 @@ jobs:
       - name: Run tests
         run: |
           pytest -q --disable-warnings --maxfail=1
+
+      - name: Run Log Analyzer
+        if: always()
+        run: |
+          # Run the main.py script and provide the sample log
+          python main.py <<< "sample.log"
 
       - name: Extract Log Summary
         if: always()
