@@ -1,15 +1,13 @@
-import os
-
-def analyze_log(file_path):
+def analyze_log(path):
     """Analyze log file for errors and warnings and return summary."""
     try:
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(path, "r", encoding="utf-8") as f:
             lines = f.readlines()
     except FileNotFoundError:
-        print(f"⚠️ File not found: {file_path}")
+        print(f"⚠️ File not found: {path}")
         return {"errors": 0, "warnings": 0}
-    except Exception as e:  # catch-all as fallback
-        print(f"⚠️ Something went wrong: {e}")
+    except OSError as e:  # narrower than Exception
+        print(f"⚠️ OS error: {e}")
         return {"errors": 0, "warnings": 0}
 
     errors = sum(1 for line in lines if "ERROR" in line)
@@ -21,7 +19,8 @@ def analyze_log(file_path):
         f.write(f"Errors={errors}\nWarnings={warnings}\n")
     return {"errors": errors, "warnings": warnings}
 
+
 if __name__ == "__main__":
-    file_path = input("Enter log file path: ").strip()
-    result = analyze_log(file_path)
+    user_input_path = input("Enter log file path: ").strip()
+    result = analyze_log(user_input_path)
     print(f"✅ Analysis complete: {result}")
