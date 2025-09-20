@@ -17,7 +17,8 @@ def analyze_log(log_input):
     warnings = sum(1 for line in lines if "WARNING" in line)
 
     # Write summary to log_summary.txt
-    with open("log_summary.txt", "w", encoding="utf-8") as f:
+    summary_file = "log_summary.txt"
+    with open(summary_file, "w", encoding="utf-8") as f:
         f.write(f"Errors={errors}\nWarnings={warnings}\n")
 
     return {"errors": errors, "warnings": warnings}
