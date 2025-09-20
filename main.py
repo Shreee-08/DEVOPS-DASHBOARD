@@ -1,40 +1,29 @@
-# main.py
-
-import os
-
 def analyze_log(log_input):
-    """
-    Accepts either a file path (str) or a list of log lines.
-    Returns dict: {'errors': int, 'warnings': int}
-    """
+    """Analyze log data from a file path or a list of log lines."""
     try:
-        if isinstance(log_input, str):  # it's a file path
-            if not os.path.exists(log_input):
-                print(f"⚠️ File not found: {log_input}")
-                return None
-            with open(log_input, 'r') as f:
-                logs = f.readlines()
-        elif isinstance(log_input, list):  # already a list of strings
-            logs = log_input
-        else:
-            print("⚠️ Something went wrong: expected str, bytes or os.PathLike object, not", type(log_input))
-            return None
+        if isinstance(log_input, list):  # Case 1: test passes a list
+            lines = log_input
+        else:  # Case 2: user provides a file path
+            with open(log_input, "r", encoding="utf-8") as f:
+                lines = f.readlines()
+    except FileNotFoundError:
+        print(f"⚠️ File not found: {log_input}")
+        return {"errors": 0, "warnings": 0}
+    except OSError as e:  # narrower than Exception
+        print(f"⚠️ OS error: {e}")
+        return {"errors": 0, "warnings": 0}
 
-        errors = sum(1 for line in logs if "ERROR" in line)
-        warnings = sum(1 for line in logs if "WARNING" in line)
+    errors = sum(1 for line in lines if "ERROR" in line)
+    warnings = sum(1 for line in lines if "WARNING" in line)
 
-        return {'errors': errors, 'warnings': warnings}
+    # Write summary to log_summary.txt
+    with open("log_summary.txt", "w", encoding="utf-8") as f:
+        f.write(f"Errors={errors}\nWarnings={warnings}\n")
 
-    except Exception as e:
-        print("⚠️ Something went wrong:", e)
-        return None
+    return {"errors": errors, "warnings": warnings}
 
 
 if __name__ == "__main__":
-    print("=== Simple Log Analyzer ===")
-    log_path = input("Enter path to log file: ").strip()
-    result = analyze_log(log_path)
-    if result is not None:
-        print(f"Errors: {result['errors']}, Warnings: {result['warnings']}")
-    else:
-        print("No result could be generated.")
+    user_input_path = input("Enter log file path: ").strip()
+    result = analyze_log(user_input_path)
+    print(f"✅ Analysis complete: {result}")
