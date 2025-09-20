@@ -28,3 +28,5 @@ if __name__ == "__main__":
     user_input_path = input("Enter log file path: ").strip()
     result = analyze_log(user_input_path)
     print(f"✅ Analysis complete: {result}")
+
+#Testing the project 20-09-2025 12:51PM

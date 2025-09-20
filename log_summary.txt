@@ -1,2 +1,2 @@
-Errors=0
-Warnings=0
+Errors=2
+Warnings=2
