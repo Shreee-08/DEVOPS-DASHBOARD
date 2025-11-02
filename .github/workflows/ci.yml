@@ -28,7 +28,7 @@ jobs:
         uses: rtCamp/action-slack-notify@v2
         env:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
-          SLACK_MESSAGE: "❌ Linting failed in CI pipeline for ${{ github.repository }} on branch ${{ github.ref_name }}.\nPlease fix code quality issues."
+          SLACK_MESSAGE: "❌ Linting failed in CI pipeline for ${{ github.repository }} on branch ${{ github.ref_name }}."
           SLACK_COLOR: danger
 
   test:
@@ -54,7 +54,7 @@ jobs:
         uses: rtCamp/action-slack-notify@v2
         env:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
-          SLACK_MESSAGE: "❌ Tests failed in CI pipeline for ${{ github.repository }} on branch ${{ github.ref_name }}.\nPlease check failing test cases."
+          SLACK_MESSAGE: "❌ Tests failed in CI pipeline for ${{ github.repository }} on branch ${{ github.ref_name }}."
           SLACK_COLOR: danger
 
   run:
@@ -70,28 +70,20 @@ jobs:
       - name: Run Log Analyzer
         run: |
           python main.py <<< "sample.log"
-      - name: Extract Log Summary
+
+      - name: Upload log summary
         if: always()
-        run: |
-          SUMMARY_FILE=$(find . -name "log_summary.txt" | head -n 1 || true)
-          if [ -n "$SUMMARY_FILE" ] && [ -f "$SUMMARY_FILE" ]; then
-            echo "Found summary: $SUMMARY_FILE"
-            cat "$SUMMARY_FILE"
-            ERRORS=$(grep 'Errors' "$SUMMARY_FILE" | cut -d= -f2)
-            WARNINGS=$(grep 'Warnings' "$SUMMARY_FILE" | cut -d= -f2)
-            echo "ERRORS=$ERRORS" >> $GITHUB_ENV
-            echo "WARNINGS=$WARNINGS" >> $GITHUB_ENV
-          else
-            echo "ERRORS=0" >> $GITHUB_ENV
-            echo "WARNINGS=0" >> $GITHUB_ENV
-          fi
+        uses: actions/upload-artifact@v4
+        with:
+          name: log-summary
+          path: log_summary.txt
 
       - name: Notify Slack on Run Failure
         if: failure()
         uses: rtCamp/action-slack-notify@v2
         env:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
-          SLACK_MESSAGE: "❌ Log Analyzer execution failed in CI pipeline for ${{ github.repository }}.\nCannot process log file. Please check pipeline execution logs."
+          SLACK_MESSAGE: "❌ Log Analyzer failed in CI pipeline for ${{ github.repository }}.\nCannot process log file. Please check pipeline logs."
           SLACK_COLOR: danger
 
   notify-success:
@@ -100,12 +92,32 @@ jobs:
     needs: [lint, test, run]
     if: success()
     steps:
-      - uses: rtCamp/action-slack-notify@v2
+      - name: Download log summary artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: log-summary
+          path: .
+
+      - name: Read log summary
+        id: read_summary
+        run: |
+          if [ -f log_summary.txt ]; then
+            ERRORS=$(grep 'Errors' log_summary.txt | cut -d= -f2 | tr -d '\r')
+            WARNINGS=$(grep 'Warnings' log_summary.txt | cut -d= -f2 | tr -d '\r')
+            echo "errors=$ERRORS" >> $GITHUB_OUTPUT
+            echo "warnings=$WARNINGS" >> $GITHUB_OUTPUT
+          else
+            echo "errors=0" >> $GITHUB_OUTPUT
+            echo "warnings=0" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Send Slack Notification (Success)
+        uses: rtCamp/action-slack-notify@v2
         env:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
           SLACK_MESSAGE: |
             ✅ CI pipeline completed successfully for *${{ github.repository }}* on branch *${{ github.ref_name }}*.
             📊 Log Summary:
-            • Errors: ${{ env.ERRORS }}
-            • Warnings: ${{ env.WARNINGS }}
+            • Errors: ${{ steps.read_summary.outputs.errors }}
+            • Warnings: ${{ steps.read_summary.outputs.warnings }}
           SLACK_COLOR: good
