@@ -102,7 +102,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: ${{ github.repository }}
-          ref: logs11      # branch name where sample.log lives (create this branch, see step 3)
+          ref: logs      # branch name where sample.log lives (create this branch, see step 3)
           path: logs-branch
       - name: Copy sample log to workspace
         run: |
