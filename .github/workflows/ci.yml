@@ -115,7 +115,7 @@ jobs:
         run: |
           python main.py <<< "sample.log"
       - name: Show log_summary
-        run: cat log_summary.txt || true
+        run: cat log_summary.txt || true ;
       - name: Notify Slack - Run
         if: failure()
         uses: rtCamp/action-slack-notify@v2
