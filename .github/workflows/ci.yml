@@ -1,4 +1,4 @@
-name: DevOps Dashboard CI/CD Pipeline
+name: DevOps Dashboard - CI Pipeline
 
 on:
   push:
@@ -8,139 +8,104 @@ on:
 
 jobs:
   lint:
-    name: 🧹 Lint
+    name: Lint Code
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Python
+      - uses: actions/checkout@v4
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.x"
-
+          python-version: '3.x'
       - name: Install dependencies
-        run: python -m pip install --upgrade pip && pip install -r requirements.txt
-
-      - name: Run Pylint
-        run: pylint main.py
-
-      - name: Notify Slack - Lint
+        run: |
+          python -m pip install --upgrade pip
+          pip install pylint
+      - name: Run pylint
+        run: |
+          pylint main.py
+      - name: Notify Slack on Lint Failure
         if: failure()
         uses: rtCamp/action-slack-notify@v2
         env:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
-          SLACK_MESSAGE: |
-            Lint ${{ job.status }} for ${{ github.repository }} on ${{ github.ref_name }}
-            Job: lint
-          SLACK_COLOR: ${{ job.status }}
+          SLACK_MESSAGE: "❌ Linting failed in CI pipeline for ${{ github.repository }} on branch ${{ github.ref_name }}.\nPlease fix code quality issues."
+          SLACK_COLOR: danger
 
   test:
-    name: ✅ Test
+    name: Run Tests
     runs-on: ubuntu-latest
     needs: lint
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          python-version: "3.x"
-      - name: Install deps
-        run: python -m pip install --upgrade pip && pip install -r requirements.txt
+          python-version: '3.x'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest
       - name: Run pytest
-        run: pytest -q --disable-warnings --maxfail=1
-      - name: Notify Slack - Test
+        run: |
+          pytest -q --disable-warnings --maxfail=1
+      - name: Notify Slack on Test Failure
         if: failure()
         uses: rtCamp/action-slack-notify@v2
         env:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
-          SLACK_MESSAGE: |
-            Test ${{ job.status }} for ${{ github.repository }} on ${{ github.ref_name }}
-            Job: test
-          SLACK_COLOR: ${{ job.status }}
+          SLACK_MESSAGE: "❌ Tests failed in CI pipeline for ${{ github.repository }} on branch ${{ github.ref_name }}.\nPlease check failing test cases."
+          SLACK_COLOR: danger
 
-  build:
-    name: 🏗 Build
+  run:
+    name: Log Analyzer
     runs-on: ubuntu-latest
     needs: test
     steps:
       - uses: actions/checkout@v4
-      - name: Simulate build (package, create artifact)
-        run: |
-          echo "Build stage: create artifact"
-          mkdir -p artifact && echo "artifact" > artifact/info.txt
-          tar czf artifact.tar.gz artifact
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          name: build-artifact
-          path: artifact.tar.gz
-      - name: Notify Slack - Build
-        if: failure()
-        uses: rtCamp/action-slack-notify@v2
-        env:
-          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
-          SLACK_MESSAGE: |
-            Build ${{ job.status }} for ${{ github.repository }} on ${{ github.ref_name }}
-            Job: build
-          SLACK_COLOR: ${{ job.status }}
-
-  run:
-    name: ▶ Run (Log Analyzer)
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Download artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: build-artifact
-          path: ./artifact
-      # Checkout logs branch to get sample.log (see Enhancement 3)
-      - name: Checkout logs branch
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ github.repository }}
-          ref: logs      # branch name where sample.log lives (create this branch, see step 3)
-          path: logs-branch
-      - name: Copy sample log to workspace
-        run: |
-          if [ -f logs-branch/sample.log ]; then
-            cp logs-branch/sample.log ./sample.log
-          else
-            echo "No sample.log in logs branch"
-          fi
-      - name: Run analyzer
+          python-version: '3.x'
+      - name: Run Log Analyzer
         run: |
           python main.py <<< "sample.log"
-      - name: Show log_summary
-        run: cat log_summary.txt || true
-      - name: Notify Slack - Run
-        if: failure()
-        uses: rtCamp/action-slack-notify@v2
-        env:
-          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
-          SLACK_MESSAGE: |
-            Run ${{ job.status }} for ${{ github.repository }} on ${{ github.ref_name }}
-            Job: run
-            📊 Summary: $(cat log_summary.txt 2>/dev/null || echo "Errors=0\nWarnings=0")
-          SLACK_COLOR: ${{ job.status }}
+      - name: Extract Log Summary
+        if: always()
+        run: |
+          SUMMARY_FILE=$(find . -name "log_summary.txt" | head -n 1 || true)
+          if [ -n "$SUMMARY_FILE" ] && [ -f "$SUMMARY_FILE" ]; then
+            echo "Found summary: $SUMMARY_FILE"
+            cat "$SUMMARY_FILE"
+            ERRORS=$(grep 'Errors' "$SUMMARY_FILE" | cut -d= -f2)
+            WARNINGS=$(grep 'Warnings' "$SUMMARY_FILE" | cut -d= -f2)
+            echo "ERRORS=$ERRORS" >> $GITHUB_ENV
+            echo "WARNINGS=$WARNINGS" >> $GITHUB_ENV
+          else
+            echo "ERRORS=0" >> $GITHUB_ENV
+            echo "WARNINGS=0" >> $GITHUB_ENV
+          fi
 
-  deploy:
-    name: 🚀 Deploy (simulated)
-    runs-on: ubuntu-latest
-    needs: run
-    steps:
-      - uses: actions/checkout@v4
-      - name: Simulated Deploy
-        run: echo "Deploying... (simulated)"
-      - name: Notify Slack - Deploy
+      - name: Notify Slack on Run Failure
         if: failure()
         uses: rtCamp/action-slack-notify@v2
         env:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_MESSAGE: "❌ Log Analyzer execution failed in CI pipeline for ${{ github.repository }}.\nCannot process log file. Please check pipeline execution logs."
+          SLACK_COLOR: danger
+
+  notify-success:
+    name: Notify Slack on Success
+    runs-on: ubuntu-latest
+    needs: [lint, test, run]
+    if: success()
+    steps:
+      - uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
           SLACK_MESSAGE: |
-            Deploy ${{ job.status }} for ${{ github.repository }} on ${{ github.ref_name }}
-            Job: deploy
-          SLACK_COLOR: ${{ job.status }}
+            ✅ CI pipeline completed successfully for *${{ github.repository }}* on branch *${{ github.ref_name }}*.
+            📊 Log Summary:
+            • Errors: ${{ env.ERRORS }}
+            • Warnings: ${{ env.WARNINGS }}
+          SLACK_COLOR: good
