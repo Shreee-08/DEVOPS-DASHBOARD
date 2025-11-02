@@ -26,7 +26,7 @@ jobs:
         run: pylint main.py
 
       - name: Notify Slack - Lint
-        if: always()
+        if: failure()
         uses: rtCamp/action-slack-notify@v2
         env:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
@@ -49,7 +49,7 @@ jobs:
       - name: Run pytest
         run: pytest -q --disable-warnings --maxfail=1
       - name: Notify Slack - Test
-        if: always()
+        if: failure()
         uses: rtCamp/action-slack-notify@v2
         env:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
@@ -75,7 +75,7 @@ jobs:
           name: build-artifact
           path: artifact.tar.gz
       - name: Notify Slack - Build
-        if: always()
+        if: failure()
         uses: rtCamp/action-slack-notify@v2
         env:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
@@ -117,7 +117,7 @@ jobs:
       - name: Show log_summary
         run: cat log_summary.txt || true
       - name: Notify Slack - Run
-        if: always()
+        if: failure()
         uses: rtCamp/action-slack-notify@v2
         env:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
@@ -136,7 +136,7 @@ jobs:
       - name: Simulated Deploy
         run: echo "Deploying... (simulated)"
       - name: Notify Slack - Deploy
-        if: always()
+        if: failure()
         uses: rtCamp/action-slack-notify@v2
         env:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
