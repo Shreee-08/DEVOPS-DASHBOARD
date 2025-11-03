@@ -1,4 +1,4 @@
+requests
 pylint
 pytest
 prometheus_client
-requests
