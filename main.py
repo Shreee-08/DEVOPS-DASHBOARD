@@ -1,6 +1,7 @@
 import os
 import requests
 
+
 def analyze_log(log_input):
     """Analyze log data from a file path or a list of log lines."""
     try:
@@ -33,16 +34,18 @@ def analyze_log(log_input):
                 f"# TYPE log_warnings gauge\nlog_warnings {warnings}\n"
             )
             response = requests.post(
-                f"{pushgateway_url}/metrics/job/log_analyzer", data=payload, timeout=5
+                f"{pushgateway_url}/metrics/job/log_analyzer",
+                data=payload,
+                timeout=5,
             )
             if response.status_code in [200, 202]:
                 print("✅ Metrics pushed to Prometheus Pushgateway successfully.")
             else:
                 print(f"⚠️ Pushgateway responded with {response.status_code}")
-        except (OSError, ValueError) as e:
-                print(f"⚠️ Something went wrong: {e}")
+        except (OSError, ValueError, requests.RequestException) as e:
+            print(f"⚠️ Something went wrong: {e}")
 
-    return {"errors": 0, "warnings": 0}
+    return {"errors": errors, "warnings": warnings}
 
 
 if __name__ == "__main__":
