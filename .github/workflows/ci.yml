@@ -8,34 +8,33 @@ on:
 
 jobs:
   lint:
-  name: Lint Code
-  runs-on: ubuntu-latest
-  steps:
-    - uses: actions/checkout@v4
+    name: Lint Code
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.x'
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install requests pylint pytest
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install requests pylint pytest
 
-    - name: Run pylint
-      run: |
-        pylint main.py
+      - name: Run pylint
+        run: |
+          pylint main.py
 
-    - name: Notify Slack on Lint Failure
-      if: failure()
-      uses: rtCamp/action-slack-notify@v2
-      env:
-        SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
-        SLACK_MESSAGE: "❌ Linting failed in CI pipeline for ${{ github.repository }} on branch ${{ github.ref_name }}."
-        SLACK_COLOR: danger
-
+      - name: Notify Slack on Lint Failure
+        if: failure()
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_MESSAGE: "❌ Linting failed in CI pipeline for ${{ github.repository }} on branch ${{ github.ref_name }}."
+          SLACK_COLOR: danger
 
   test:
     name: Run Tests
@@ -43,18 +42,22 @@ jobs:
     needs: lint
     steps:
       - uses: actions/checkout@v4
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.x'
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install pytest
+
       - name: Run pytest
         run: |
           pytest -q --disable-warnings --maxfail=1
+
       - name: Notify Slack on Test Failure
         if: failure()
         uses: rtCamp/action-slack-notify@v2
@@ -69,10 +72,12 @@ jobs:
     needs: test
     steps:
       - uses: actions/checkout@v4
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.x'
+
       - name: Run Log Analyzer
         run: |
           python main.py <<< "sample.log"
